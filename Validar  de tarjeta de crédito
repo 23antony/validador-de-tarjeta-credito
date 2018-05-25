@@ -1,0 +1,375 @@
+<html <head>
+<head>
+<title>Validador  de tarjeta de crédito</title>
+</head>
+<body>
+
+<script language="javascript">
+var Cards = new makeArray(8);
+Cards[0] = new CardType("MasterCard", "51,52,53,54,55", "16");
+var MasterCard = Cards[0];
+Cards[1] = new CardType("VisaCard", "4", "13,16");
+var VisaCard = Cards[1];
+Cards[2] = new CardType("AmExCard", "34,37", "16");
+var AmExCard = Cards[2];
+Cards[3] = new CardType("DinersClubCard", "30,36,38", "16");
+var DinersClubCard = Cards[3];
+Cards[4] = new CardType("DiscoverCard", "6011", "16");
+var DiscoverCard = Cards[4];
+Cards[5] = new CardType("enRouteCard", "2014,2149", "15");
+var enRouteCard = Cards[5];
+Cards[6] = new CardType("JCBCard", "3088,3096,3112,3158,3337,3528", "16");
+var JCBCard = Cards[6];
+var LuhnCheckSum = Cards[7] = new CardType();
+
+
+
+
+function CheckCardNumber(form) {
+  var tmpyear;
+  if (form.CardNumber.value.length == 0) {
+    alert(" número de tarjeta.");
+    form.CardNumber.focus();
+    return;
+  }
+  if (form.ExpYear.value.length == 0) {
+    alert(" año de caducidad.");
+    form.ExpYear.focus();
+    return;
+  }
+  if (form.ExpYear.value > 96)
+    tmpyear = "19" + form.ExpYear.value;
+  else if (form.ExpYear.value < 21)
+    tmpyear = "20" + form.ExpYear.value;
+  else {
+    alert("Año incorrecto.");
+    return;
+  }
+  tmpmonth = form.ExpMon.options[form.ExpMon.selectedIndex].value;
+
+  if (!(new CardType()).isExpiryDate(tmpyear, tmpmonth)) {
+    alert("Fecha de caducidad .");
+    return;
+  }
+  card = form.CardType.options[form.CardType.selectedIndex].value;
+  var retval = eval(card + ".checkCardNumber(\"" + form.CardNumber.value +
+        "\", " + tmpyear + ", " + tmpmonth + ");");
+
+  cardname = "";
+  if (retval)
+
+    alert("¡Correcto!");
+  else {
+    for (var n = 0; n < Cards.size; n++) {
+      if (Cards[n].checkCardNumber(form.CardNumber.value, tmpyear, tmpmonth)) {
+        cardname = Cards[n].getCardType();
+        break;
+      }
+    }
+    if (cardname.length > 0) {
+      alert("Este es " + cardname + " número, no " + card + " número.");
+    }
+    else {
+      alert("Este no es un número de tarjeta.");
+    }
+  }
+}
+
+
+function CardType() {
+  var n;
+  var argv = CardType.arguments;
+  var argc = CardType.arguments.length;
+
+  this.objname = "object CardType";
+
+  var tmpcardtype = (argc > 0) ? argv[0] : "CardObject";
+  var tmprules = (argc > 1) ? argv[1] : "0,1,2,3,4,5,6,7,8,9";
+  var tmplen = (argc > 2) ? argv[2] : "13,14,15,16,19";
+
+
+  this.setCardNumber = setCardNumber;
+
+
+  this.setCardType = setCardType;
+
+
+  this.setLen = setLen;
+
+
+  this.setRules = setRules;
+
+
+  this.setExpiryDate = setExpiryDate;
+
+  this.setCardType(tmpcardtype);
+  this.setLen(tmplen);
+  this.setRules(tmprules);
+  if (argc > 4)
+    this.setExpiryDate(argv[3], argv[4]);
+
+
+  this.checkCardNumber = checkCardNumber;
+
+
+  this.getExpiryDate = getExpiryDate;
+
+
+  this.getCardType = getCardType;
+
+
+  this.isCardNumber = isCardNumber;
+
+  this.isExpiryDate = isExpiryDate;
+
+  this.luhnCheck = luhnCheck;
+
+  return this;
+}
+
+
+function checkCardNumber() {
+  var argv = checkCardNumber.arguments;
+  var argc = checkCardNumber.arguments.length;
+  var cardnumber = (argc > 0) ? argv[0] : this.cardnumber;
+  var year = (argc > 1) ? argv[1] : this.year;
+  var month = (argc > 2) ? argv[2] : this.month;
+
+  this.setCardNumber(cardnumber);
+  this.setExpiryDate(year, month);
+
+  if (!this.isCardNumber())
+    return false;
+
+  if (!this.isExpiryDate())
+    return false;
+
+  return true;
+}
+
+function getCardType() {
+  return this.cardtype;
+}
+
+function getExpiryDate() {
+  return this.month + "/" + this.year;
+}
+
+
+function isCardNumber() {
+  var argv = isCardNumber.arguments;
+  var argc = isCardNumber.arguments.length;
+  var cardnumber = (argc > 0) ? argv[0] : this.cardnumber;
+
+  if (!this.luhnCheck())
+    return false;
+
+  for (var n = 0; n < this.len.size; n++)
+    if (cardnumber.toString().length == this.len[n]) {
+      for (var m = 0; m < this.rules.size; m++) {
+        var headdigit = cardnumber.substring(0, this.rules[m].toString().length);
+        if (headdigit == this.rules[m])
+          return true;
+      }
+      return false;
+    }
+
+  return false;
+}
+
+
+function isExpiryDate() {
+  var argv = isExpiryDate.arguments;
+  var argc = isExpiryDate.arguments.length;
+
+  year = argc > 0 ? argv[0] : this.year;
+  month = argc > 1 ? argv[1] : this.month;
+
+  if (!isNum(year+""))
+    return false;
+  if (!isNum(month+""))
+    return false;
+  today = new Date();
+  expiry = new Date(year, month);
+  if (today.getTime() > expiry.getTime())
+    return false;
+  else
+    return true;
+}
+
+
+function isNum(argvalue) {
+  argvalue = argvalue.toString();
+
+  if (argvalue.length == 0)
+    return false;
+
+  for (var n = 0; n < argvalue.length; n++)
+    if (argvalue.substring(n, n+1) < "0" || argvalue.substring(n, n+1) > "9")
+      return false;
+
+  return true;
+}
+
+
+function luhnCheck() {
+  var argv = luhnCheck.arguments;
+  var argc = luhnCheck.arguments.length;
+
+  var CardNumber = argc > 0 ? argv[0] : this.cardnumber;
+
+  if (! isNum(CardNumber)) {
+    return false;
+  }
+
+  var no_digit = CardNumber.length;
+  var oddoeven = no_digit & 1;
+  var sum = 0;
+
+  for (var count = 0; count < no_digit; count++) {
+    var digit = parseInt(CardNumber.charAt(count));
+    if (!((count & 1) ^ oddoeven)) {
+      digit *= 2;
+      if (digit > 9)
+	digit -= 9;
+    }
+    sum += digit;
+  }
+  if (sum % 10 == 0)
+    return true;
+  else
+    return false;
+}
+
+
+function makeArray(size) {
+  this.size = size;
+  return this;
+}
+
+
+function setCardNumber(cardnumber) {
+  this.cardnumber = cardnumber;
+
+  return this;
+}
+
+
+function setCardType(cardtype) {
+  this.cardtype = cardtype;
+
+  return this;
+}
+
+
+function setExpiryDate(year, month) {
+  this.year = year;
+  this.month = month;
+
+  return this;
+}
+
+
+function setLen(len) {
+
+  if (len.length == 16 || len == null)
+    len = "13,14,15,16,19";
+
+  var tmplen = len;
+  n = 1;
+  while (tmplen.indexOf(",") != -1) {
+    tmplen = tmplen.substring(tmplen.indexOf(",") + 1, tmplen.length);
+    n++;
+  }
+  this.len = new makeArray(n);
+  n = 0;
+  while (len.indexOf(",") != -1) {
+    var tmpstr = len.substring(0, len.indexOf(","));
+    this.len[n] = tmpstr;
+    len = len.substring(len.indexOf(",") + 1, len.length);
+    n++;
+  }
+  this.len[n] = len;
+
+  return this;
+}
+
+
+function setRules(rules) {
+
+  if (rules.length == 0 || rules == null)
+    rules = "0,1,2,3,4,5,6,7,8,9";
+
+  var tmprules = rules;
+  n = 1;
+  while (tmprules.indexOf(",") != -1) {
+    tmprules = tmprules.substring(tmprules.indexOf(",") + 1, tmprules.length);
+    n++;
+  }
+  this.rules = new makeArray(n);
+  n = 0;
+  while (rules.indexOf(",") != -1) {
+    var tmpstr = rules.substring(0, rules.indexOf(","));
+    this.rules[n] = tmpstr;
+    rules = rules.substring(rules.indexOf(",") + 1, rules.length);
+    n++;
+  }
+  this.rules[n] = rules;
+
+  return this;
+}
+
+</script>
+<h2 align=><font size="3">Validar   tarjeta de crédito.</font></h2>
+
+<blockquote>
+
+  <form name="ThisForm">
+    <p>Número de tarjeta: <input maxLength="16" size="16" name="CardNumber"><br>
+    Tipo de tarjeta: <select name="CardType">
+    <option value="MasterCard" selected>MasterCard</option>
+    <option value="VisaCard">Visa</option>
+    <option value="AmExCard">AmEx</option>
+
+    </select> <br>
+    Fecha caducidad: Mes <select name="ExpMon">
+    <option value="1" selected>1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+    <option value="11">11</option>
+    <option value="12">12</option>
+    <option value="13">13</option>
+    <option value="14">14</option>
+    <option value="15">15</option>
+    <option value="16">16</option>
+    <option value="17">17</option>
+    <option value="18">18</option>
+    <option value="19">19</option>
+    <option value="20">20</option>
+    <option value="21">21</option>
+    <option value="22">22</option>
+    <option value="23">23</option>
+    <option value="24">24</option>
+    <option value="25">25</option>
+    <option value="26">26</option>
+    <option value="27">27</option>
+    <option value="28">28</option>
+    <option value="29">29</option>
+    <option value="30">30</option>
+    </select> Año <input maxLength="2" size="2" name="ExpYear">(
+    2018~2020)<br>
+    <input onclick="CheckCardNumber(this.form)" type="button" value="Validar"><br>
+    </p>
+  </form>
+</blockquote>
+
+</body>
+
+</html>
